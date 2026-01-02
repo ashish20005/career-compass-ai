@@ -92,19 +92,11 @@ export function HeroSection() {
   variant="hero" 
   size="xl" 
   onClick={() => {
-    // 1. Give the agent fake skills to 'reason' with
     const results = runAgent(["f1 racer", "car mechanic"]);
-    
-    // 2. Show the result in a popup so he knows it executed
-    alert(`Agent Executed! 
-    Top Match: ${results[0].title} 
-    Confidence: ${results[0].matchScore}%`);
-    
-    // 3. Log it to the console as "Raw Execution" proof
-    console.log("AI Agent Logic Results:", results);
+    alert(Agent Executed! Top Match: ${results[0].title});
   }}
 >
-  Run AI Execution
+  Execute Agent Now
   <Sparkles className="w-5 h-5 ml-2" />
 </Button>
           Execute Agent Now
