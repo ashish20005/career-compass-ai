@@ -58,13 +58,6 @@ export function Navbar() {
                 ))}
               </div>
 
-              {/* CTA Button */}
-              <div className="hidden md:flex items-center gap-3">
-                <Button variant="hero" size="lg">
-                  <Zap className="w-4 h-4" />
-                  Get Started
-                </Button>
-              </div>
 
               {/* Mobile Menu Toggle */}
               <button
