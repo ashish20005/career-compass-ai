@@ -94,10 +94,7 @@ export function HeroSection() {
                 <ArrowRight className="w-5 h-5 ml-1" />
               </Link>
             </Button>
-            <Button variant="glass" size="xl">
-              <Play className="w-5 h-5" />
-              Watch Demo
-            </Button>
+            
           </motion.div>
 
           {/* Stats */}
