@@ -104,10 +104,7 @@ export function Navbar() {
                   {link.label}
                 </Link>
               ))}
-              <Button variant="hero" size="lg" className="w-full mt-4">
-                <Zap className="w-4 h-4" />
-                Get Started
-              </Button>
+      
             </div>
           </motion.div>
         )}
