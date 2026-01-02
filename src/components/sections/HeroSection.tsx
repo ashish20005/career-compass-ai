@@ -1,4 +1,3 @@
-import { runAgent } from "@/lib/agent-logic";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play, Sparkles, Users, Target, TrendingUp } from "lucide-react";
@@ -88,17 +87,13 @@ export function HeroSection() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
           >
-           <Button 
-            variant="hero" 
-            size="xl" 
-            onClick={() => {
-              const results = runAgent(["f1 racer", "car mechanic"]);
-              alert(Agent Executed! Top Match: ${results[0].title});
-            }}
-          >
-            Execute Agent Now
-            <Sparkles className="w-5 h-5 ml-2" />
-          </Button>
+            <Button variant="hero" size="xl" asChild>
+              <Link to="/dashboard">
+                Start Your Journey
+                <ArrowRight className="w-5 h-5 ml-1" />
+              </Link>
+            </Button>
+            
           </motion.div>
 
           {/* Stats */}

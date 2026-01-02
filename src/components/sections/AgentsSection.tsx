@@ -1,4 +1,3 @@
-import { runAgent } from "@/lib/agent-logic";
 import { motion } from "framer-motion";
 import { AgentCard } from "@/components/ui/agent-card";
 import { FileText, BookOpen, Search, MessageSquare } from "lucide-react";
