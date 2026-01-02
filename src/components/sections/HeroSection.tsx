@@ -98,9 +98,6 @@ export function HeroSection() {
 >
   Execute Agent Now
   <Sparkles className="w-5 h-5 ml-2" />
-</Button>
-          Execute Agent Now
-                <Sparkles className="w-5 h-5 ml-2" />
           </Button>
           </motion.div>
 
