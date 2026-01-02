@@ -1,3 +1,8 @@
+// This forces a result to appear as soon as the page loads
+useEffect(() => {
+  const demoResults = runAgent(["f1 racer", "car mechanic"]);
+  setResults(demoResults); 
+}, []);
 import { motion } from "framer-motion";
 import { AgentCard } from "@/components/ui/agent-card";
 import { FileText, BookOpen, Search, MessageSquare } from "lucide-react";
