@@ -1,3 +1,4 @@
+import { runAgent } from "@/lib/agent-logic";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play, Sparkles, Users, Target, TrendingUp } from "lucide-react";
@@ -87,13 +88,28 @@ export function HeroSection() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
           >
-            <Button variant="hero" size="xl" asChild>
-              <Link to="/dashboard">
-                Start Your Journey
-                <ArrowRight className="w-5 h-5 ml-1" />
-              </Link>
-            </Button>
-            
+           <Button 
+  variant="hero" 
+  size="xl" 
+  onClick={() => {
+    // 1. Give the agent fake skills to 'reason' with
+    const results = runAgent(["f1 racer", "car mechanic"]);
+    
+    // 2. Show the result in a popup so he knows it executed
+    alert(`Agent Executed! 
+    Top Match: ${results[0].title} 
+    Confidence: ${results[0].matchScore}%`);
+    
+    // 3. Log it to the console as "Raw Execution" proof
+    console.log("AI Agent Logic Results:", results);
+  }}
+>
+  Run AI Execution
+  <Sparkles className="w-5 h-5 ml-2" />
+</Button>
+          Execute Agent Now
+                <Sparkles className="w-5 h-5 ml-2" />
+          </Button>
           </motion.div>
 
           {/* Stats */}
