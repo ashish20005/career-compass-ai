@@ -4,7 +4,6 @@ import { ArrowRight, Play, Sparkles, Users, Target, TrendingUp } from "lucide-re
 import { Link } from "react-router-dom";
 
 const stats = [
-  { icon: Users, value: "50K+", label: "Users" },
   { icon: Target, value: "92%", label: "Match Rate" },
   { icon: TrendingUp, value: "3x", label: "Career Growth" },
 ];
