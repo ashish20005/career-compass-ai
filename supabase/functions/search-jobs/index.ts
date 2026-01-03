@@ -24,9 +24,21 @@ serve(async (req) => {
         throw new Error("LOVABLE_API_KEY is not configured");
       }
 
-      const systemPrompt = `You are a job market expert. Generate realistic, current job listings based on the search criteria provided. 
+const systemPrompt = `You are a job market expert. Generate realistic, current job listings based on the search criteria provided. 
 Make the listings realistic with actual company names, realistic salaries, and current job requirements.
-Include a mix of remote and on-site positions. Make sure job links point to real job boards like LinkedIn, Indeed, or company career pages.`;
+Include a mix of remote and on-site positions.
+
+CRITICAL: For applyUrl, you MUST use REAL, working job search URLs in these formats:
+- LinkedIn: https://www.linkedin.com/jobs/search/?keywords={job_title}&location={location}
+- Indeed: https://www.indeed.com/jobs?q={job_title}&l={location}
+- Glassdoor: https://www.glassdoor.com/Job/{location}-{job_title}-jobs-SRCH_IL.htm
+- Company career pages: https://{company}.com/careers or https://careers.{company}.com
+
+For example:
+- "https://www.linkedin.com/jobs/search/?keywords=Software%20Engineer&location=San%20Francisco"
+- "https://www.indeed.com/jobs?q=Data%20Scientist&l=Remote"
+- "https://careers.google.com/jobs"
+- "https://www.microsoft.com/en-us/careers"`;
 
       const userPrompt = `Generate 15-20 realistic job listings for the following search:
 Query: ${query || 'Software Developer'}
@@ -39,14 +51,14 @@ Respond in JSON format:
     {
       "id": "unique_id",
       "title": "Job Title",
-      "company": "Company Name",
+      "company": "Company Name (use real companies like Google, Microsoft, Amazon, Meta, Apple, Netflix, Spotify, Salesforce, Adobe, etc.)",
       "location": "City, State or Remote",
       "salary": "$XXK - $XXXK",
       "posted": "X days ago",
       "type": "Full-time" | "Part-time" | "Contract",
       "skills": ["skill1", "skill2", "skill3"],
       "description": "Brief job description (2-3 sentences)",
-      "applyUrl": "https://linkedin.com/jobs/view/xxxxx or company career page URL",
+      "applyUrl": "MUST be a real, clickable URL - use LinkedIn job search, Indeed, or actual company career pages. Example: https://www.linkedin.com/jobs/search/?keywords=Software%20Engineer&location=Remote or https://careers.google.com",
       "featured": boolean (true for top matches),
       "experienceLevel": "Entry" | "Mid" | "Senior" | "Lead"
     }
@@ -55,7 +67,7 @@ Respond in JSON format:
   "searchTips": ["tip1", "tip2"]
 }
 
-Make sure the jobs are diverse and include various experience levels and company sizes.`;
+IMPORTANT: Every applyUrl must be a real, working URL that users can click to find jobs. Use URL-encoded job titles and locations.`;
 
       const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',

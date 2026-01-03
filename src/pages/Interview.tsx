@@ -1,73 +1,161 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { 
   MessageSquare, 
   Play, 
-  Mic,
-  MicOff,
+  Send,
   RotateCcw,
   CheckCircle2,
   AlertCircle,
   TrendingUp,
   Brain,
   Clock,
-  Sparkles
+  Sparkles,
+  Loader2,
+  User,
+  Bot
 } from "lucide-react";
 
 const interviewTypes = [
-  { id: "hr", label: "HR Round", description: "Behavioral & cultural fit questions", duration: "20 min" },
-  { id: "technical", label: "Technical", description: "Coding & system design questions", duration: "45 min" },
-  { id: "behavioral", label: "Behavioral", description: "STAR method response practice", duration: "30 min" },
+  { id: "HR", label: "HR Round", description: "Behavioral & cultural fit questions", duration: "20 min" },
+  { id: "Technical", label: "Technical", description: "Coding & system design questions", duration: "45 min" },
+  { id: "Behavioral", label: "Behavioral", description: "STAR method response practice", duration: "30 min" },
 ];
 
-const mockQuestions = [
-  "Tell me about yourself and your experience.",
-  "Why are you interested in this role?",
-  "Describe a challenging project you worked on.",
-  "How do you handle tight deadlines?",
-  "Where do you see yourself in 5 years?",
-];
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
+
+interface AnalysisResult {
+  overallScore: number;
+  confidenceScore: number;
+  communicationScore: number;
+  technicalScore: number;
+  strengths: string[];
+  areasToImprove: string[];
+  detailedFeedback: string;
+  recommendedResources: string[];
+  skillsToImprove: string[];
+}
 
 const Interview = () => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [isInterviewing, setIsInterviewing] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [answers, setAnswers] = useState<string[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const startInterview = () => {
-    setIsInterviewing(true);
-    setCurrentQuestion(0);
-    setAnswers([]);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const nextQuestion = () => {
-    if (currentQuestion < mockQuestions.length - 1) {
-      setCurrentQuestion(prev => prev + 1);
-      setIsRecording(false);
-    } else {
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const startInterview = async () => {
+    if (!selectedType) return;
+    
+    setIsInterviewing(true);
+    setMessages([]);
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('interview-chat', {
+        body: { 
+          action: 'start',
+          interviewType: selectedType
+        }
+      });
+
+      if (error) throw error;
+
+      setMessages([{ role: "assistant", content: data.message }]);
+    } catch (error: any) {
+      console.error("Error starting interview:", error);
+      toast.error("Failed to start interview. Please try again.");
       setIsInterviewing(false);
-      setShowResults(true);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const results = {
-    confidence: 78,
-    technical: 85,
-    communication: 72,
-    improvements: [
-      { type: "success", text: "Strong technical explanations" },
-      { type: "success", text: "Good use of specific examples" },
-      { type: "warning", text: "Work on maintaining eye contact" },
-      { type: "warning", text: "Avoid filler words like 'um' and 'uh'" },
-    ],
-    weakAreas: ["Time management", "Conflict resolution"],
+  const sendMessage = async () => {
+    if (!inputValue.trim() || isLoading) return;
+
+    const userMessage = inputValue.trim();
+    setInputValue("");
+    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('interview-chat', {
+        body: { 
+          messages: [...messages, { role: "user", content: userMessage }],
+          interviewType: selectedType
+        }
+      });
+
+      if (error) throw error;
+
+      setMessages(prev => [...prev, { role: "assistant", content: data.message }]);
+    } catch (error: any) {
+      console.error("Error sending message:", error);
+      toast.error("Failed to get response. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const endInterview = async () => {
+    if (messages.length < 2) {
+      toast.error("Please have at least one exchange before ending the interview.");
+      return;
+    }
+
+    setIsAnalyzing(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('interview-chat', {
+        body: { 
+          messages,
+          interviewType: selectedType,
+          action: 'analyze'
+        }
+      });
+
+      if (error) throw error;
+
+      setAnalysis(data.analysis);
+      setIsInterviewing(false);
+      setShowResults(true);
+    } catch (error: any) {
+      console.error("Error analyzing interview:", error);
+      toast.error("Failed to analyze interview. Please try again.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const resetInterview = () => {
+    setSelectedType(null);
+    setIsInterviewing(false);
+    setShowResults(false);
+    setMessages([]);
+    setAnalysis(null);
   };
 
   return (
@@ -79,7 +167,7 @@ const Interview = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-12"
+            className="text-center mb-8"
           >
             <div className="w-16 h-16 rounded-2xl bg-interview/20 flex items-center justify-center mx-auto mb-4">
               <MessageSquare className="w-8 h-8 text-interview" />
@@ -125,83 +213,126 @@ const Interview = () => {
                   variant="interview" 
                   size="xl" 
                   onClick={startInterview}
-                  disabled={!selectedType}
+                  disabled={!selectedType || isLoading}
                 >
-                  <Play className="w-5 h-5 mr-2" />
-                  Start Interview
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Starting...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-5 h-5 mr-2" />
+                      Start Interview
+                    </>
+                  )}
                 </Button>
               </div>
             </motion.div>
           )}
 
-          {/* Interview in Progress */}
+          {/* Chat Interface */}
           <AnimatePresence mode="wait">
             {isInterviewing && (
               <motion.div
-                key="interview"
+                key="chat"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="space-y-8"
+                className="space-y-4"
               >
-                {/* Progress */}
-                <div className="mb-8">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">
-                      Question {currentQuestion + 1} of {mockQuestions.length}
-                    </span>
-                    <span className="text-sm font-medium">
-                      {Math.round(((currentQuestion + 1) / mockQuestions.length) * 100)}%
-                    </span>
-                  </div>
-                  <Progress value={((currentQuestion + 1) / mockQuestions.length) * 100} />
+                {/* Chat Messages */}
+                <div className="h-[450px] overflow-y-auto rounded-2xl bg-card border border-border/50 p-4 space-y-4">
+                  {messages.map((message, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      {message.role === 'assistant' && (
+                        <div className="w-8 h-8 rounded-full bg-interview/20 flex items-center justify-center flex-shrink-0">
+                          <Bot className="w-4 h-4 text-interview" />
+                        </div>
+                      )}
+                      <div className={`max-w-[80%] p-4 rounded-2xl ${
+                        message.role === 'user' 
+                          ? 'bg-interview text-interview-foreground' 
+                          : 'bg-muted'
+                      }`}>
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      </div>
+                      {message.role === 'user' && (
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <User className="w-4 h-4 text-primary" />
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                  
+                  {isLoading && (
+                    <div className="flex gap-3 justify-start">
+                      <div className="w-8 h-8 rounded-full bg-interview/20 flex items-center justify-center">
+                        <Bot className="w-4 h-4 text-interview" />
+                      </div>
+                      <div className="bg-muted p-4 rounded-2xl">
+                        <Loader2 className="w-4 h-4 animate-spin text-interview" />
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
                 </div>
 
-                {/* Question Card */}
-                <div className="p-8 rounded-2xl bg-gradient-to-br from-interview/10 to-interview/5 border border-interview/30 text-center">
-                  <Brain className="w-12 h-12 text-interview mx-auto mb-4" />
-                  <h2 className="text-2xl font-semibold mb-2">
-                    {mockQuestions[currentQuestion]}
-                  </h2>
-                  <p className="text-muted-foreground">
-                    Take your time to think and respond naturally.
-                  </p>
-                </div>
-
-                {/* Recording Controls */}
-                <div className="flex flex-col items-center gap-4">
-                  <Button
-                    variant={isRecording ? "destructive" : "interview"}
-                    size="xl"
-                    onClick={() => setIsRecording(!isRecording)}
-                    className="rounded-full w-20 h-20"
+                {/* Input Area */}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Type your response..."
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                    disabled={isLoading}
+                    className="flex-1"
+                  />
+                  <Button 
+                    variant="interview" 
+                    size="icon"
+                    onClick={sendMessage}
+                    disabled={isLoading || !inputValue.trim()}
                   >
-                    {isRecording ? (
-                      <MicOff className="w-8 h-8" />
-                    ) : (
-                      <Mic className="w-8 h-8" />
-                    )}
+                    <Send className="w-4 h-4" />
                   </Button>
-                  <p className="text-sm text-muted-foreground">
-                    {isRecording ? "Recording... Click to stop" : "Click to start recording"}
-                  </p>
                 </div>
 
                 {/* Actions */}
-                <div className="flex justify-center gap-4">
-                  <Button variant="outline" size="lg">
+                <div className="flex justify-center gap-4 pt-4">
+                  <Button variant="outline" size="lg" onClick={resetInterview}>
                     <RotateCcw className="w-4 h-4 mr-2" />
-                    Skip Question
+                    Cancel Interview
                   </Button>
-                  <Button variant="interview" size="lg" onClick={nextQuestion}>
-                    {currentQuestion < mockQuestions.length - 1 ? "Next Question" : "Finish Interview"}
+                  <Button 
+                    variant="interview" 
+                    size="lg" 
+                    onClick={endInterview}
+                    disabled={isAnalyzing || messages.length < 2}
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        End & Get Feedback
+                      </>
+                    )}
                   </Button>
                 </div>
               </motion.div>
             )}
 
             {/* Results */}
-            {showResults && (
+            {showResults && analysis && (
               <motion.div
                 key="results"
                 initial={{ opacity: 0, y: 20 }}
@@ -209,54 +340,80 @@ const Interview = () => {
                 className="space-y-8"
               >
                 {/* Score Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="p-6 rounded-2xl bg-gradient-to-br from-interview/20 to-interview/5 border border-interview/30 text-center">
-                    <TrendingUp className="w-8 h-8 text-interview mx-auto mb-2" />
-                    <div className="text-3xl font-bold text-interview">{results.confidence}%</div>
-                    <div className="text-sm text-muted-foreground">Confidence Score</div>
+                    <TrendingUp className="w-6 h-6 text-interview mx-auto mb-2" />
+                    <div className="text-2xl font-bold text-interview">{analysis.overallScore}%</div>
+                    <div className="text-xs text-muted-foreground">Overall</div>
                   </div>
                   <div className="p-6 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 border border-accent/30 text-center">
-                    <Brain className="w-8 h-8 text-accent mx-auto mb-2" />
-                    <div className="text-3xl font-bold text-accent">{results.technical}%</div>
-                    <div className="text-sm text-muted-foreground">Technical Score</div>
+                    <Brain className="w-6 h-6 text-accent mx-auto mb-2" />
+                    <div className="text-2xl font-bold text-accent">{analysis.technicalScore}%</div>
+                    <div className="text-xs text-muted-foreground">Technical</div>
                   </div>
                   <div className="p-6 rounded-2xl bg-gradient-to-br from-resume/20 to-resume/5 border border-resume/30 text-center">
-                    <MessageSquare className="w-8 h-8 text-resume mx-auto mb-2" />
-                    <div className="text-3xl font-bold text-resume">{results.communication}%</div>
-                    <div className="text-sm text-muted-foreground">Communication</div>
+                    <MessageSquare className="w-6 h-6 text-resume mx-auto mb-2" />
+                    <div className="text-2xl font-bold text-resume">{analysis.communicationScore}%</div>
+                    <div className="text-xs text-muted-foreground">Communication</div>
+                  </div>
+                  <div className="p-6 rounded-2xl bg-gradient-to-br from-jobscout/20 to-jobscout/5 border border-jobscout/30 text-center">
+                    <Sparkles className="w-6 h-6 text-jobscout mx-auto mb-2" />
+                    <div className="text-2xl font-bold text-jobscout">{analysis.confidenceScore}%</div>
+                    <div className="text-xs text-muted-foreground">Confidence</div>
                   </div>
                 </div>
 
-                {/* Feedback */}
+                {/* Detailed Feedback */}
                 <div className="p-6 rounded-2xl bg-card border border-border/50">
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-interview" />
                     AI Feedback
                   </h3>
-                  <div className="space-y-3">
-                    {results.improvements.map((item, index) => (
-                      <div key={index} className="flex items-start gap-3">
-                        {item.type === "success" ? (
-                          <CheckCircle2 className="w-5 h-5 text-accent mt-0.5" />
-                        ) : (
-                          <AlertCircle className="w-5 h-5 text-jobscout mt-0.5" />
-                        )}
-                        <span className="text-sm">{item.text}</span>
-                      </div>
-                    ))}
+                  <p className="text-muted-foreground whitespace-pre-wrap">{analysis.detailedFeedback}</p>
+                </div>
+
+                {/* Strengths & Improvements */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-6 rounded-2xl bg-card border border-border/50">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-accent" />
+                      Strengths
+                    </h4>
+                    <ul className="space-y-2">
+                      {analysis.strengths.map((strength, index) => (
+                        <li key={index} className="flex items-start gap-2 text-sm">
+                          <CheckCircle2 className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" />
+                          {strength}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="p-6 rounded-2xl bg-card border border-border/50">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5 text-jobscout" />
+                      Areas to Improve
+                    </h4>
+                    <ul className="space-y-2">
+                      {analysis.areasToImprove.map((area, index) => (
+                        <li key={index} className="flex items-start gap-2 text-sm">
+                          <AlertCircle className="w-4 h-4 text-jobscout mt-0.5 flex-shrink-0" />
+                          {area}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
 
-                {/* Weak Areas - Sent to Skill Gap */}
+                {/* Skills to Improve */}
                 <div className="p-6 rounded-2xl bg-gradient-to-r from-skillgap/10 to-transparent border border-skillgap/30">
-                  <h3 className="text-lg font-semibold mb-3">Skills to Improve</h3>
+                  <h3 className="text-lg font-semibold mb-3">Skills to Focus On</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    These areas have been sent to your Skill Gap Agent for learning recommendations.
+                    These skills can help you perform better in future interviews.
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {results.weakAreas.map((area) => (
-                      <Badge key={area} className="bg-skillgap">
-                        {area}
+                    {analysis.skillsToImprove.map((skill) => (
+                      <Badge key={skill} className="bg-skillgap">
+                        {skill}
                       </Badge>
                     ))}
                   </div>
@@ -264,14 +421,9 @@ const Interview = () => {
 
                 {/* Actions */}
                 <div className="flex justify-center gap-4">
-                  <Button variant="outline" size="lg" onClick={() => {
-                    setShowResults(false);
-                    setSelectedType(null);
-                  }}>
+                  <Button variant="outline" size="lg" onClick={resetInterview}>
+                    <RotateCcw className="w-4 h-4 mr-2" />
                     New Interview
-                  </Button>
-                  <Button variant="interview" size="lg">
-                    View Full Report
                   </Button>
                 </div>
               </motion.div>
