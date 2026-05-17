@@ -52,23 +52,64 @@ const Resume = () => {
     });
   };
 
+  const fileToBase64 = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(',')[1] ?? result);
+      };
+      reader.onerror = () => reject(new Error("Could not read the selected file"));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setUploadedFile(file);
       
-      // For text-based files, extract content
       if (file.type === "text/plain" || file.name.endsWith('.txt')) {
         const text = await extractTextFromFile(file);
         if (text) {
           setResumeText(text);
           analyzeResume(text);
         }
+      } else if (file.type === "application/pdf" || file.name.toLowerCase().endsWith('.pdf')) {
+        setShowTextInput(false);
+        analyzeResumeFromPdf(file);
       } else {
-        // For PDF/DOC, show text input option
         setShowTextInput(true);
-        toast.info("For best results, paste your resume text below or use a .txt file");
+        toast.info("This file type needs pasted resume text. PDF uploads can be analyzed automatically.");
       }
+    }
+  };
+
+  const analyzeResumeFromPdf = async (file: File) => {
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+
+    try {
+      const fileBase64 = await fileToBase64(file);
+      const { data, error } = await supabase.functions.invoke('analyze-resume', {
+        body: {
+          fileBase64,
+          fileType: file.type || 'application/pdf',
+          fileName: file.name,
+          targetRole,
+        }
+      });
+
+      if (error) throw error;
+
+      setAnalysisResult(data);
+      toast.success("PDF resume analyzed successfully!");
+    } catch (error: any) {
+      console.error("Error analyzing PDF resume:", error);
+      toast.error(error.message || "Failed to analyze PDF resume. Please try another PDF.");
+      setShowTextInput(true);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -180,7 +221,7 @@ const Resume = () => {
                     Drop your resume here
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    TXT file recommended, or paste text below
+                    Upload PDF or TXT, or paste text below
                   </p>
                 </div>
                 <input 
