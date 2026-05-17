@@ -146,18 +146,42 @@ const Resume = () => {
     }
   };
 
-  const downloadOptimizedResume = () => {
-    if (analysisResult?.optimizedResume) {
-      const blob = new Blob([analysisResult.optimizedResume], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'optimized-resume.txt';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+  const downloadOptimizedResume = async () => {
+    if (!analysisResult?.optimizedResume) return;
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
+      const marginX = 48;
+      const marginY = 56;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const maxWidth = pageWidth - marginX * 2;
+      const lineHeight = 14;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+
+      let y = marginY;
+      const paragraphs = analysisResult.optimizedResume.split(/\n/);
+      for (const para of paragraphs) {
+        if (para.trim() === "") {
+          y += lineHeight / 2;
+          continue;
+        }
+        const wrapped = doc.splitTextToSize(para, maxWidth) as string[];
+        for (const line of wrapped) {
+          if (y > pageHeight - marginY) {
+            doc.addPage();
+            y = marginY;
+          }
+          doc.text(line, marginX, y);
+          y += lineHeight;
+        }
+      }
+      doc.save("optimized-resume.pdf");
       toast.success("Resume downloaded!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate PDF");
     }
   };
 
