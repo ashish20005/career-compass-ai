@@ -221,7 +221,7 @@ const Resume = () => {
                     Drop your resume here
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    TXT file recommended, or paste text below
+                    Upload PDF or TXT, or paste text below
                   </p>
                 </div>
                 <input 
