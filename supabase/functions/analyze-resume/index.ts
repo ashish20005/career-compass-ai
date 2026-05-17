@@ -114,18 +114,21 @@ serve(async (req) => {
   }
 
   try {
-    const { resumeText, targetRole } = await req.json();
-    
-    if (!resumeText) {
-      return new Response(JSON.stringify({ error: "Resume text is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    const { resumeText, targetRole, fileBase64, fileType, fileName }: AnalyzeResumePayload = await req.json();
+    const isPdf = fileType === 'application/pdf' || fileName?.toLowerCase().endsWith('.pdf');
+    let extractedResumeText = cleanText(resumeText ?? '');
+    
+    if (!extractedResumeText && fileBase64 && isPdf) {
+      extractedResumeText = await extractPdfText(fileBase64, fileName ?? 'resume.pdf', LOVABLE_API_KEY);
+    }
+
+    if (!hasMeaningfulText(extractedResumeText)) {
+      return jsonResponse({ error: "I couldn't read enough text from this PDF. Please upload a text-based resume PDF or try another file." }, 400);
     }
 
     const systemPrompt = `You are an expert resume optimizer and career coach. Your job is to analyze resumes and provide:
@@ -143,7 +146,7 @@ When optimizing:
 
     const userPrompt = `Please analyze and optimize this resume${targetRole ? ` for a ${targetRole} position` : ''}:
 
-${resumeText}
+${extractedResumeText}
 
 Respond in JSON format with this structure:
 {
@@ -178,16 +181,10 @@ Respond in JSON format with this structure:
       console.error("AI gateway error:", response.status, errorText);
       
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limits exceeded, please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return jsonResponse({ error: "Rate limits exceeded, please try again later." }, 429);
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Usage limits reached, please try again later." }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return jsonResponse({ error: "Usage limits reached, please try again later." }, 402);
       }
       
       throw new Error(`AI gateway error: ${response.status}`);
@@ -204,16 +201,11 @@ Respond in JSON format with this structure:
     
     console.log("Resume analysis completed successfully");
 
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return jsonResponse(result);
 
   } catch (error: unknown) {
     console.error('Error in analyze-resume function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: errorMessage }, 500);
   }
 });
