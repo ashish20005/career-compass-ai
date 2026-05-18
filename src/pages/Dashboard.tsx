@@ -13,7 +13,8 @@ import {
   TrendingUp,
   Target,
   Award,
-  Clock
+  Clock,
+  Sparkles
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -185,6 +186,32 @@ const Dashboard = () => {
                 Start Interview
               </Link>
             </Button>
+          </motion.div>
+
+          {/* Interview Prep highlight */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="mt-6"
+          >
+            <Link
+              to="/interview-prep"
+              className="block p-6 rounded-2xl border border-primary/30 bg-gradient-to-r from-interview/10 via-primary/10 to-accent/10 hover:border-primary/60 transition-all"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-interview to-primary flex items-center justify-center shrink-0">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg">AI Resume Interview Question Generator</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Upload your resume (PDF / DOCX) and get personalized interview questions across technical, project, experience, and HR rounds.
+                  </p>
+                </div>
+                <Button variant="default">Try it</Button>
+              </div>
+            </Link>
           </motion.div>
         </div>
       </main>
