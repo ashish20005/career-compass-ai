@@ -151,32 +151,140 @@ const Resume = () => {
     try {
       const { jsPDF } = await import("jspdf");
       const doc = new jsPDF({ unit: "pt", format: "a4" });
-      const marginX = 48;
-      const marginY = 56;
+      const marginX = 54;
+      const marginY = 54;
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       const maxWidth = pageWidth - marginX * 2;
-      const lineHeight = 14;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
 
       let y = marginY;
-      const paragraphs = analysisResult.optimizedResume.split(/\n/);
-      for (const para of paragraphs) {
-        if (para.trim() === "") {
-          y += lineHeight / 2;
+
+      const ensureSpace = (needed: number) => {
+        if (y + needed > pageHeight - marginY) {
+          doc.addPage();
+          y = marginY;
+        }
+      };
+
+      const writeLines = (
+        text: string,
+        opts: { size: number; style?: "normal" | "bold" | "italic"; align?: "left" | "center"; lineGap?: number; indent?: number }
+      ) => {
+        const { size, style = "normal", align = "left", lineGap = 4, indent = 0 } = opts;
+        doc.setFont("helvetica", style);
+        doc.setFontSize(size);
+        const lh = size * 1.25;
+        const width = maxWidth - indent;
+        const wrapped = doc.splitTextToSize(text, width) as string[];
+        for (const line of wrapped) {
+          ensureSpace(lh);
+          if (align === "center") {
+            doc.text(line, pageWidth / 2, y, { align: "center" });
+          } else {
+            doc.text(line, marginX + indent, y);
+          }
+          y += lh;
+        }
+        y += lineGap;
+      };
+
+      const drawDivider = () => {
+        ensureSpace(8);
+        doc.setDrawColor(120);
+        doc.setLineWidth(0.6);
+        doc.line(marginX, y, pageWidth - marginX, y);
+        y += 8;
+      };
+
+      const raw = analysisResult.optimizedResume.replace(/\r/g, "");
+      const lines = raw.split("\n");
+
+      // Strip markdown markers
+      const clean = (s: string) => s.replace(/\*\*/g, "").replace(/^#+\s*/, "").trim();
+
+      const isHeading = (s: string) => {
+        const t = s.trim();
+        if (!t || t.length > 60) return false;
+        if (/^#+\s+/.test(s)) return true;
+        const letters = t.replace(/[^A-Za-z]/g, "");
+        if (letters.length >= 3 && letters === letters.toUpperCase() && !/[.!?]/.test(t)) return true;
+        return false;
+      };
+
+      const isBullet = (s: string) => /^\s*([-*•·]|\d+\.)\s+/.test(s);
+      const bulletText = (s: string) => s.replace(/^\s*([-*•·]|\d+\.)\s+/, "");
+
+      // Header: name (first non-empty line), contact (second non-empty line if it looks like contact)
+      let idx = 0;
+      while (idx < lines.length && !lines[idx].trim()) idx++;
+      if (idx < lines.length) {
+        const name = clean(lines[idx]);
+        writeLines(name, { size: 20, style: "bold", align: "center", lineGap: 2 });
+        idx++;
+      }
+      // Contact line(s)
+      while (idx < lines.length) {
+        const t = lines[idx].trim();
+        if (!t) { idx++; break; }
+        const looksContact = /@|\|| \u2022 |linkedin|github|http|\+?\d[\d\s().-]{6,}/i.test(t) && !isHeading(t);
+        if (!looksContact) break;
+        writeLines(clean(t), { size: 10, style: "normal", align: "center", lineGap: 2 });
+        idx++;
+      }
+      y += 4;
+      drawDivider();
+
+      // Body
+      for (; idx < lines.length; idx++) {
+        const rawLine = lines[idx];
+        const t = rawLine.trim();
+        if (!t) { y += 6; continue; }
+
+        if (isHeading(rawLine)) {
+          y += 4;
+          writeLines(clean(rawLine).toUpperCase(), { size: 12, style: "bold", lineGap: 2 });
+          drawDivider();
           continue;
         }
-        const wrapped = doc.splitTextToSize(para, maxWidth) as string[];
-        for (const line of wrapped) {
-          if (y > pageHeight - marginY) {
-            doc.addPage();
-            y = marginY;
-          }
-          doc.text(line, marginX, y);
-          y += lineHeight;
+
+        if (isBullet(rawLine)) {
+          const text = clean(bulletText(rawLine));
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10.5);
+          const lh = 10.5 * 1.3;
+          const wrapped = doc.splitTextToSize(text, maxWidth - 14) as string[];
+          wrapped.forEach((line, i) => {
+            ensureSpace(lh);
+            if (i === 0) doc.text("•", marginX + 2, y);
+            doc.text(line, marginX + 14, y);
+            y += lh;
+          });
+          y += 2;
+          continue;
         }
+
+        // Bold-leading line like "**Role** — Company"
+        const boldMatch = rawLine.match(/^\s*\*\*(.+?)\*\*\s*(.*)$/);
+        if (boldMatch) {
+          const bold = boldMatch[1];
+          const rest = boldMatch[2];
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          const lh = 11 * 1.3;
+          ensureSpace(lh);
+          const boldWidth = doc.getTextWidth(bold);
+          doc.text(bold, marginX, y);
+          if (rest) {
+            doc.setFont("helvetica", "normal");
+            doc.text(" " + rest, marginX + boldWidth, y);
+          }
+          y += lh + 2;
+          continue;
+        }
+
+        writeLines(clean(rawLine), { size: 10.5, style: "normal", lineGap: 2 });
       }
+
       doc.save("optimized-resume.pdf");
       toast.success("Resume downloaded!");
     } catch (err) {
