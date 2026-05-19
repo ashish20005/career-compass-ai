@@ -196,7 +196,7 @@ const Dashboard = () => {
             className="mt-6"
           >
             <Link
-              to="/interview-prep"
+              to="/interview"
               className="block p-6 rounded-2xl border border-primary/30 bg-gradient-to-r from-interview/10 via-primary/10 to-accent/10 hover:border-primary/60 transition-all"
             >
               <div className="flex items-center gap-4">
