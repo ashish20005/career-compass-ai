@@ -89,13 +89,20 @@ serve(async (req) => {
 
   try {
     const KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!KEY) throw new Error("LOVABLE_API_KEY missing");
+    if (!KEY) {
+      console.error("Missing AI configuration");
+      return json({ error: "Service temporarily unavailable. Please try again later." }, 503);
+    }
 
-    const { fileBase64, fileType, fileName, resumeText } = await req.json();
+    const body = await req.json();
+    const fileBase64 = typeof body.fileBase64 === 'string' ? body.fileBase64 : '';
+    const fileType = typeof body.fileType === 'string' ? body.fileType.slice(0, 200) : '';
+    const fileName = typeof body.fileName === 'string' ? body.fileName.slice(0, 300) : '';
+    const resumeText = typeof body.resumeText === 'string' ? body.resumeText.slice(0, MAX_CHARS) : '';
 
-    let text = clean(resumeText ?? "");
+    let text = clean(resumeText);
     if (!text && fileBase64) {
-      text = await extractResume(fileBase64, fileType ?? "", fileName ?? "", KEY);
+      text = await extractResume(fileBase64, fileType, fileName, KEY);
     }
     if (!hasText(text)) {
       return json({ error: "Please upload a valid resume (PDF, DOCX, or text)." }, 400);
