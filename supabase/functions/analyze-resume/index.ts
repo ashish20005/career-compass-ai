@@ -116,7 +116,8 @@ serve(async (req) => {
   try {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("Missing AI configuration");
+      return jsonResponse({ error: "Service temporarily unavailable. Please try again later." }, 503);
     }
 
     const { resumeText, targetRole, fileBase64, fileType, fileName }: AnalyzeResumePayload = await req.json();
