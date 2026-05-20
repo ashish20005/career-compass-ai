@@ -327,7 +327,11 @@ const Jobs = () => {
                         <Button 
                           variant="jobscout" 
                           size="sm"
-                          onClick={() => job.applyUrl && window.open(job.applyUrl, '_blank')}
+                          onClick={() => {
+                            const url = job.applyUrl;
+                            if (!url || !/^https:\/\//i.test(url)) return;
+                            window.open(url, '_blank', 'noopener,noreferrer');
+                          }}
                         >
                           Apply
                           <ExternalLink className="w-4 h-4 ml-1" />
