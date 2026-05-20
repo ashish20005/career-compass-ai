@@ -188,7 +188,7 @@ Respond in JSON format with this structure:
         return jsonResponse({ error: "Usage limits reached, please try again later." }, 402);
       }
       
-      throw new Error(`AI gateway error: ${response.status}`);
+      return jsonResponse({ error: "Service temporarily unavailable. Please try again later." }, 503);
     }
 
     const data = await response.json();
