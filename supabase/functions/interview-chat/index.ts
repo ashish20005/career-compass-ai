@@ -12,10 +12,35 @@ serve(async (req) => {
 
   try {
     const { messages, interviewType, action, resumeContext } = await req.json();
-    
+
+    const MAX_MESSAGES = 30;
+    const MAX_MESSAGE_LEN = 4000;
+    const MAX_RESUME_CTX = 20000;
+    const MAX_TYPE_LEN = 100;
+
+    if (messages && (!Array.isArray(messages) || messages.length > MAX_MESSAGES)) {
+      return new Response(JSON.stringify({ error: "Invalid or too many messages." }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (Array.isArray(messages)) {
+      for (const m of messages) {
+        if (!m || typeof m.content !== 'string' || m.content.length > MAX_MESSAGE_LEN) {
+          return new Response(JSON.stringify({ error: "Invalid message content." }), {
+            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
+    }
+    const safeResumeContext = typeof resumeContext === 'string' ? resumeContext.slice(0, MAX_RESUME_CTX) : '';
+    const safeInterviewType = typeof interviewType === 'string' ? interviewType.slice(0, MAX_TYPE_LEN) : 'general';
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("Missing AI configuration");
+      return new Response(JSON.stringify({ error: "Service temporarily unavailable. Please try again later." }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const resumeBlock = resumeContext
