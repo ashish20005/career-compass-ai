@@ -11,17 +11,36 @@ serve(async (req) => {
   }
 
   try {
-    const { query, location, skills, page = 1 } = await req.json();
-    
+    const body = await req.json();
+    const MAX_STR = 200;
+    const MAX_SKILLS = 50;
+    const MAX_SKILL_LEN = 100;
+
+    const query = typeof body.query === 'string' ? body.query.slice(0, MAX_STR) : '';
+    const location = typeof body.location === 'string' ? body.location.slice(0, MAX_STR) : '';
+    const rawSkills = Array.isArray(body.skills) ? body.skills : [];
+    if (rawSkills.length > MAX_SKILLS) {
+      return new Response(JSON.stringify({ error: `Too many skills (max ${MAX_SKILLS}).` }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const skills = rawSkills
+      .filter((s: unknown) => typeof s === 'string')
+      .map((s: string) => s.slice(0, MAX_SKILL_LEN));
+    const page = Number.isInteger(body.page) && body.page > 0 && body.page <= 50 ? body.page : 1;
+
     const RAPIDAPI_KEY = Deno.env.get('RAPIDAPI_KEY');
-    
+
     // If no API key, use AI to generate realistic job listings
     if (!RAPIDAPI_KEY) {
       console.log("No RapidAPI key found, using AI to generate job listings");
-      
+
       const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
       if (!LOVABLE_API_KEY) {
-        throw new Error("LOVABLE_API_KEY is not configured");
+        console.error("Missing AI configuration");
+        return new Response(JSON.stringify({ error: "Service temporarily unavailable. Please try again later." }), {
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
 const systemPrompt = `You are a job market expert. Generate realistic, current job listings based on the search criteria provided. 
