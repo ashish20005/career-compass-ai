@@ -195,18 +195,32 @@ const Interview = () => {
     }, 50);
   };
 
+  const buildResumeContext = () => {
+    if (!result) return "";
+    const s: any = result.summary || {};
+    return [
+      `Skills: ${(s.skills || []).join(", ")}`,
+      `Technologies: ${(s.technologies || []).join(", ")}`,
+      `Projects: ${(s.projects || []).join(", ")}`,
+      `Experience: ${(s.experience || []).join(", ")}`,
+      `Education: ${(s.education || []).join(", ")}`,
+      `Certifications: ${(s.certifications || []).join(", ")}`,
+      result.extractedText ? `\nResume Excerpt:\n${result.extractedText}` : "",
+    ].join("\n");
+  };
+
   const startChat = async () => {
     if (!result) return;
     setChatOpen(true);
     if (chatMessages.length > 0) return;
     setChatLoading(true);
     try {
-      const intro = `You are interviewing a candidate based on this resume context:\n\nSkills: ${result.summary.skills?.join(", ")}\nTechnologies: ${result.summary.technologies?.join(", ")}\nProjects: ${result.summary.projects?.join(", ")}\nExperience: ${result.summary.experience?.join(", ")}\n\nAsk your first personalized interview question now.`;
       const { data, error } = await supabase.functions.invoke("interview-chat", {
         body: {
           action: "start",
           interviewType: "Resume-based",
-          messages: [{ role: "user", content: intro }],
+          resumeContext: buildResumeContext(),
+          messages: [],
         },
       });
       if (error) throw error;
@@ -227,7 +241,11 @@ const Interview = () => {
     setChatLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("interview-chat", {
-        body: { messages: next, interviewType: "Resume-based" },
+        body: {
+          messages: next,
+          interviewType: "Resume-based",
+          resumeContext: buildResumeContext(),
+        },
       });
       if (error) throw error;
       setChatMessages((m) => [...m, { role: "assistant", content: data.message }]);
