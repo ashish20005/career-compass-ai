@@ -92,6 +92,7 @@ const Interview = () => {
   const [result, setResult] = useState<QuestionResult | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [showAnswers, setShowAnswers] = useState<Record<string, boolean>>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Chat with the Interview Agent (uses resume context)
   const [chatOpen, setChatOpen] = useState(false);
@@ -265,13 +266,14 @@ const Interview = () => {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <Card>
                 <CardContent className="p-0">
-                  <label
+                  <div
                     onDragOver={(e) => {
                       e.preventDefault();
                       setDragOver(true);
                     }}
                     onDragLeave={() => setDragOver(false)}
                     onDrop={onDrop}
+                    onClick={() => fileInputRef.current?.click()}
                     className={`flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg cursor-pointer transition-all ${
                       dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/30"
                     }`}
@@ -281,20 +283,28 @@ const Interview = () => {
                     </div>
                     <h3 className="text-xl font-semibold mb-2">Drop your resume here</h3>
                     <p className="text-muted-foreground mb-4">PDF or DOCX • up to 10MB</p>
-                    <Button type="button" onClick={(e) => (e.currentTarget.previousElementSibling as HTMLElement)?.click()}>
+                    <Button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        fileInputRef.current?.click();
+                      }}
+                    >
                       <FileText className="w-4 h-4 mr-2" />
                       Choose File
                     </Button>
                     <input
+                      ref={fileInputRef}
                       type="file"
                       accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                       className="hidden"
                       onChange={(e) => {
                         const f = e.target.files?.[0];
                         if (f) handleFile(f);
+                        e.target.value = "";
                       }}
                     />
-                  </label>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
