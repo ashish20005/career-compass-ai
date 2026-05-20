@@ -150,17 +150,19 @@ The sampleAnswer should be a brief 2-3 sentence model answer outline.`;
       console.error("AI gateway error:", res.status, errText);
       if (res.status === 429) return json({ error: "Rate limits exceeded, please try again later." }, 429);
       if (res.status === 402) return json({ error: "Usage limits reached, please add credits." }, 402);
-      throw new Error(`AI gateway error: ${res.status}`);
+      return json({ error: "Service temporarily unavailable. Please try again later." }, 503);
     }
 
     const data = await res.json();
     const content = data.choices?.[0]?.message?.content;
-    if (!content) throw new Error("No response from AI");
+    if (!content) {
+      console.error("Empty AI response");
+      return json({ error: "Service temporarily unavailable. Please try again." }, 503);
+    }
     const parsed = JSON.parse(content);
     return json({ ...parsed, extractedText: text.slice(0, 2000) });
   } catch (e: unknown) {
     console.error("generate-interview-questions error:", e);
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    return json({ error: msg }, 500);
+    return json({ error: "An unexpected error occurred. Please try again." }, 500);
   }
 });
