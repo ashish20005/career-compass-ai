@@ -195,7 +195,8 @@ Respond in JSON format with this structure:
     const content = data.choices?.[0]?.message?.content;
     
     if (!content) {
-      throw new Error("No response from AI");
+      console.error("Empty AI response");
+      return jsonResponse({ error: "Service temporarily unavailable. Please try again." }, 503);
     }
 
     const result = JSON.parse(content);
@@ -206,7 +207,6 @@ Respond in JSON format with this structure:
 
   } catch (error: unknown) {
     console.error('Error in analyze-resume function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return jsonResponse({ error: errorMessage }, 500);
+    return jsonResponse({ error: "An unexpected error occurred. Please try again." }, 500);
   }
 });
