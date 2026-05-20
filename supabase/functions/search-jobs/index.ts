@@ -122,7 +122,8 @@ IMPORTANT: Every applyUrl must be a real, working URL that users can click to fi
       const content = data.choices?.[0]?.message?.content;
       
       if (!content) {
-        throw new Error("No response from AI");
+        console.error("Empty AI response");
+        return new Response(JSON.stringify({ error: "Service temporarily unavailable. Please try again." }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       const result = JSON.parse(content);
