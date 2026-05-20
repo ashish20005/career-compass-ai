@@ -197,7 +197,7 @@ const Interview = () => {
 
   const buildResumeContext = () => {
     if (!result) return "";
-    const s = result.summary || {};
+    const s: any = result.summary || {};
     return [
       `Skills: ${(s.skills || []).join(", ")}`,
       `Technologies: ${(s.technologies || []).join(", ")}`,
