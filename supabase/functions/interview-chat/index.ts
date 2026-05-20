@@ -11,31 +11,35 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, interviewType, action } = await req.json();
+    const { messages, interviewType, action, resumeContext } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    const resumeBlock = resumeContext
+      ? `\n\nYou MUST ground every question in the candidate's actual resume below. Reference specific projects, technologies, internships, and skills by name. Do NOT ask generic questions that are not connected to this resume.\n\n--- CANDIDATE RESUME ---\n${resumeContext}\n--- END RESUME ---\n`
+      : "";
+
     let systemPrompt = '';
     let userPrompt = '';
 
     if (action === 'start') {
-      systemPrompt = `You are an expert interview coach conducting a ${interviewType} interview. 
+      systemPrompt = `You are an expert interview coach conducting a personalized ${interviewType} mock interview.${resumeBlock}
+
 Your role is to:
-1. Ask one interview question at a time
-2. Wait for the candidate's response
-3. Provide constructive feedback on their answer
-4. Ask follow-up questions when appropriate
-5. Be encouraging but honest about areas for improvement
+1. Ask one question at a time, drawn directly from the candidate's resume (their projects, skills, technologies, internships, education)
+2. Make the very first question specific to something concrete in their resume (name the project or technology)
+3. Wait for the candidate's response, then give brief constructive feedback
+4. Ask relevant follow-up questions tied to their background
+5. Be encouraging but honest
 
-Start by welcoming the candidate and asking your first ${interviewType} interview question.
-Keep your responses conversational and professional.`;
+Start by warmly welcoming the candidate by acknowledging one thing from their resume, then ask your first personalized question.`;
 
-      userPrompt = `Please start the ${interviewType} interview. Welcome me and ask your first question.`;
+      userPrompt = `Please begin the interview now. Welcome me and ask your first question based on my resume.`;
     } else if (action === 'analyze') {
-      systemPrompt = `You are an expert interview coach analyzing a candidate's interview performance.
+      systemPrompt = `You are an expert interview coach analyzing a candidate's interview performance.${resumeBlock}
 Provide comprehensive, honest, and constructive feedback.`;
 
       const conversationHistory = messages.map((m: any) => `${m.role}: ${m.content}`).join('\n\n');
@@ -57,16 +61,14 @@ Respond in JSON format:
   "skillsToImprove": ["skill1", "skill2"]
 }`;
     } else {
-      // Regular chat response
-      systemPrompt = `You are an expert interview coach conducting a ${interviewType} interview.
-Your role is to:
-1. Listen to the candidate's response carefully
-2. Provide brief, constructive feedback (1-2 sentences)
-3. Ask a relevant follow-up question OR move to the next topic
-4. Be encouraging but professional
-5. After 4-5 questions, offer to wrap up and provide overall feedback
+      systemPrompt = `You are an expert interview coach conducting a personalized ${interviewType} mock interview.${resumeBlock}
 
-Keep responses concise but helpful. Focus on one question at a time.`;
+Your role is to:
+1. Carefully read the candidate's last answer
+2. Give brief constructive feedback (1-2 sentences)
+3. Ask the NEXT question, which MUST be tied to a specific item from the resume above (project, technology, internship, skill). Never ask generic questions disconnected from the resume.
+4. Be encouraging and professional
+5. After 4-5 questions, offer to wrap up and provide overall feedback`;
     }
 
     const apiMessages = [
