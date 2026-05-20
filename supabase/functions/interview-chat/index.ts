@@ -150,7 +150,8 @@ Your role is to:
     const content = data.choices?.[0]?.message?.content;
 
     if (!content) {
-      throw new Error("No response from AI");
+      console.error("Empty AI response");
+      return new Response(JSON.stringify({ error: "Service temporarily unavailable. Please try again." }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     if (action === 'analyze') {
