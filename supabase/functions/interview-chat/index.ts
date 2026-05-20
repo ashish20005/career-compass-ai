@@ -86,7 +86,7 @@ Respond in JSON format:
   "skillsToImprove": ["skill1", "skill2"]
 }`;
     } else {
-      systemPrompt = `You are an expert interview coach conducting a personalized ${interviewType} mock interview.${resumeBlock}
+      systemPrompt = `You are an expert interview coach conducting a personalized ${safeInterviewType} mock interview.${resumeBlock}
 
 Your role is to:
 1. Carefully read the candidate's last answer
