@@ -116,7 +116,8 @@ serve(async (req) => {
   try {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("Missing AI configuration");
+      return jsonResponse({ error: "Service temporarily unavailable. Please try again later." }, 503);
     }
 
     const { resumeText, targetRole, fileBase64, fileType, fileName }: AnalyzeResumePayload = await req.json();
@@ -187,14 +188,15 @@ Respond in JSON format with this structure:
         return jsonResponse({ error: "Usage limits reached, please try again later." }, 402);
       }
       
-      throw new Error(`AI gateway error: ${response.status}`);
+      return jsonResponse({ error: "Service temporarily unavailable. Please try again later." }, 503);
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
     
     if (!content) {
-      throw new Error("No response from AI");
+      console.error("Empty AI response");
+      return jsonResponse({ error: "Service temporarily unavailable. Please try again." }, 503);
     }
 
     const result = JSON.parse(content);
@@ -205,7 +207,6 @@ Respond in JSON format with this structure:
 
   } catch (error: unknown) {
     console.error('Error in analyze-resume function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return jsonResponse({ error: errorMessage }, 500);
+    return jsonResponse({ error: "An unexpected error occurred. Please try again." }, 500);
   }
 });

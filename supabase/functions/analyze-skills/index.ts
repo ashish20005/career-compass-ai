@@ -12,17 +12,36 @@ serve(async (req) => {
 
   try {
     const { skills } = await req.json();
-    
-    if (!skills || skills.length === 0) {
+
+    const MAX_SKILLS = 50;
+    const MAX_SKILL_LEN = 100;
+
+    if (!skills || !Array.isArray(skills) || skills.length === 0) {
       return new Response(JSON.stringify({ error: "Skills are required" }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    if (skills.length > MAX_SKILLS) {
+      return new Response(JSON.stringify({ error: `Too many skills (max ${MAX_SKILLS}).` }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const safeSkills = skills
+      .filter((s: unknown) => typeof s === 'string')
+      .map((s: string) => s.slice(0, MAX_SKILL_LEN));
+    if (safeSkills.length === 0) {
+      return new Response(JSON.stringify({ error: "Invalid skills format." }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("Missing AI configuration");
+      return new Response(JSON.stringify({ error: "Service temporarily unavailable. Please try again later." }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const systemPrompt = `You are an expert career advisor and job market analyst. Based on a user's skills, you will:
@@ -34,7 +53,7 @@ serve(async (req) => {
 
 Be specific about job titles and realistic about match percentages based on the skills provided.`;
 
-    const userPrompt = `Based on these skills: ${skills.join(', ')}
+    const userPrompt = `Based on these skills: ${safeSkills.join(', ')}
 
 Analyze and provide job recommendations and a learning path. Respond in JSON format:
 {
@@ -98,14 +117,15 @@ Provide at least 10 job matches and 5 learning path items.`;
         });
       }
       
-      throw new Error(`AI gateway error: ${response.status}`);
+      return new Response(JSON.stringify({ error: "Service temporarily unavailable. Please try again later." }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
     
     if (!content) {
-      throw new Error("No response from AI");
+      console.error("Empty AI response");
+      return new Response(JSON.stringify({ error: "Service temporarily unavailable. Please try again." }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const result = JSON.parse(content);
@@ -118,8 +138,7 @@ Provide at least 10 job matches and 5 learning path items.`;
 
   } catch (error: unknown) {
     console.error('Error in analyze-skills function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(JSON.stringify({ error: "An unexpected error occurred. Please try again." }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
