@@ -53,7 +53,7 @@ serve(async (req) => {
 
 Be specific about job titles and realistic about match percentages based on the skills provided.`;
 
-    const userPrompt = `Based on these skills: ${skills.join(', ')}
+    const userPrompt = `Based on these skills: ${safeSkills.join(', ')}
 
 Analyze and provide job recommendations and a learning path. Respond in JSON format:
 {
