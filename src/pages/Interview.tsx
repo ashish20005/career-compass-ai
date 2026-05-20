@@ -92,6 +92,7 @@ const Interview = () => {
   const [result, setResult] = useState<QuestionResult | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [showAnswers, setShowAnswers] = useState<Record<string, boolean>>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Chat with the Interview Agent (uses resume context)
   const [chatOpen, setChatOpen] = useState(false);
