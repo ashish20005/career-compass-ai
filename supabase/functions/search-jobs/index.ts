@@ -212,8 +212,7 @@ IMPORTANT: Every applyUrl must be a real, working URL that users can click to fi
 
   } catch (error: unknown) {
     console.error('Error in search-jobs function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(JSON.stringify({ error: "An unexpected error occurred. Please try again." }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
