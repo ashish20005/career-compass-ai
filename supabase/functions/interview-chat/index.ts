@@ -43,15 +43,15 @@ serve(async (req) => {
       });
     }
 
-    const resumeBlock = resumeContext
-      ? `\n\nYou MUST ground every question in the candidate's actual resume below. Reference specific projects, technologies, internships, and skills by name. Do NOT ask generic questions that are not connected to this resume.\n\n--- CANDIDATE RESUME ---\n${resumeContext}\n--- END RESUME ---\n`
+    const resumeBlock = safeResumeContext
+      ? `\n\nYou MUST ground every question in the candidate's actual resume below. Reference specific projects, technologies, internships, and skills by name. Do NOT ask generic questions that are not connected to this resume.\n\n--- CANDIDATE RESUME ---\n${safeResumeContext}\n--- END RESUME ---\n`
       : "";
 
     let systemPrompt = '';
     let userPrompt = '';
 
     if (action === 'start') {
-      systemPrompt = `You are an expert interview coach conducting a personalized ${interviewType} mock interview.${resumeBlock}
+      systemPrompt = `You are an expert interview coach conducting a personalized ${safeInterviewType} mock interview.${resumeBlock}
 
 Your role is to:
 1. Ask one question at a time, drawn directly from the candidate's resume (their projects, skills, technologies, internships, education)
