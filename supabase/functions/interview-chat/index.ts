@@ -111,7 +111,7 @@ Your role is to:
       });
     }
 
-    console.log(`Interview chat - Action: ${action}, Type: ${interviewType}`);
+    console.log(`Interview chat - Action: ${action}, Type: ${safeInterviewType}`);
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
