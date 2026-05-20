@@ -173,7 +173,7 @@ IMPORTANT: Every applyUrl must be a real, working URL that users can click to fi
 
     if (!response.ok) {
       console.error("JSearch API error:", response.status);
-      throw new Error(`Job search API error: ${response.status}`);
+      return new Response(JSON.stringify({ error: "Job search is temporarily unavailable. Please try again later." }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const data = await response.json();
