@@ -138,8 +138,7 @@ Provide at least 10 job matches and 5 learning path items.`;
 
   } catch (error: unknown) {
     console.error('Error in analyze-skills function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(JSON.stringify({ error: "An unexpected error occurred. Please try again." }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
