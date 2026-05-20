@@ -12,17 +12,36 @@ serve(async (req) => {
 
   try {
     const { skills } = await req.json();
-    
-    if (!skills || skills.length === 0) {
+
+    const MAX_SKILLS = 50;
+    const MAX_SKILL_LEN = 100;
+
+    if (!skills || !Array.isArray(skills) || skills.length === 0) {
       return new Response(JSON.stringify({ error: "Skills are required" }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    if (skills.length > MAX_SKILLS) {
+      return new Response(JSON.stringify({ error: `Too many skills (max ${MAX_SKILLS}).` }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const safeSkills = skills
+      .filter((s: unknown) => typeof s === 'string')
+      .map((s: string) => s.slice(0, MAX_SKILL_LEN));
+    if (safeSkills.length === 0) {
+      return new Response(JSON.stringify({ error: "Invalid skills format." }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("Missing AI configuration");
+      return new Response(JSON.stringify({ error: "Service temporarily unavailable. Please try again later." }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const systemPrompt = `You are an expert career advisor and job market analyst. Based on a user's skills, you will:
