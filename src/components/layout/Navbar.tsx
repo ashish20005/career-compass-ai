@@ -19,6 +19,16 @@ const navLinks = [
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
+
+  const initials = (user?.user_metadata?.full_name || user?.email || "U")
+    .split(" ").map((p: string) => p[0]).slice(0, 2).join("").toUpperCase();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50">
