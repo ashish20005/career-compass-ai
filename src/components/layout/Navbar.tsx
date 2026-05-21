@@ -129,7 +129,15 @@ export function Navbar() {
                   {link.label}
                 </Link>
               ))}
-      
+              {user ? (
+                <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => { setIsOpen(false); handleSignOut(); }}>
+                  <LogOut className="w-4 h-4" /> Sign out
+                </Button>
+              ) : (
+                <Button variant="hero" size="sm" className="w-full" asChild>
+                  <Link to="/auth" onClick={() => setIsOpen(false)}>Sign in</Link>
+                </Button>
+              )}
             </div>
           </motion.div>
         )}
