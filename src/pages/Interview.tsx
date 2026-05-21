@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Upload,
   FileText,
@@ -86,6 +87,7 @@ const fileToBase64 = (file: File): Promise<string> =>
   });
 
 const Interview = () => {
+  const { requireAuth } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -129,7 +131,7 @@ const Interview = () => {
     }
   }, []);
 
-  const handleFile = (f: File) => {
+  const handleFile = async (f: File) => {
     const ok =
       f.type === "application/pdf" ||
       f.name.toLowerCase().endsWith(".pdf") ||
@@ -139,6 +141,8 @@ const Interview = () => {
       toast.error("Please upload a PDF or DOCX file.");
       return;
     }
+    const authed = await requireAuth("Sign in with Google to upload your resume and start your interview.");
+    if (!authed) return;
     setFile(f);
     setResult(null);
     setChatOpen(false);
@@ -235,6 +239,8 @@ const Interview = () => {
   const sendChat = async () => {
     const text = chatInput.trim();
     if (!text || chatLoading) return;
+    const authed = await requireAuth("Sign in with Google to chat with the AI coach.");
+    if (!authed) return;
     setChatInput("");
     const next = [...chatMessages, { role: "user" as const, content: text }];
     setChatMessages(next);
