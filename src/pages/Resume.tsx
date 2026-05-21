@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Upload, 
   FileText, 
@@ -31,6 +32,7 @@ interface AnalysisResult {
 }
 
 const Resume = () => {
+  const { requireAuth } = useAuth();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [resumeText, setResumeText] = useState("");
   const [targetRole, setTargetRole] = useState("");
@@ -66,22 +68,23 @@ const Resume = () => {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setUploadedFile(file);
-      
-      if (file.type === "text/plain" || file.name.endsWith('.txt')) {
-        const text = await extractTextFromFile(file);
-        if (text) {
-          setResumeText(text);
-          analyzeResume(text);
-        }
-      } else if (file.type === "application/pdf" || file.name.toLowerCase().endsWith('.pdf')) {
-        setShowTextInput(false);
-        analyzeResumeFromPdf(file);
-      } else {
-        setShowTextInput(true);
-        toast.info("This file type needs pasted resume text. PDF uploads can be analyzed automatically.");
+    if (!file) return;
+    const ok = await requireAuth("Sign in with Google to upload and analyze your resume.");
+    if (!ok) { e.target.value = ""; return; }
+    setUploadedFile(file);
+
+    if (file.type === "text/plain" || file.name.endsWith('.txt')) {
+      const text = await extractTextFromFile(file);
+      if (text) {
+        setResumeText(text);
+        analyzeResume(text);
       }
+    } else if (file.type === "application/pdf" || file.name.toLowerCase().endsWith('.pdf')) {
+      setShowTextInput(false);
+      analyzeResumeFromPdf(file);
+    } else {
+      setShowTextInput(true);
+      toast.info("This file type needs pasted resume text. PDF uploads can be analyzed automatically.");
     }
   };
 
@@ -118,6 +121,9 @@ const Resume = () => {
       toast.error("Please provide resume text to analyze");
       return;
     }
+    const ok = await requireAuth("Sign in with Google to analyze your resume.");
+    if (!ok) return;
+
 
     setIsAnalyzing(true);
     setAnalysisResult(null);
