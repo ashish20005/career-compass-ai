@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Search, 
   MapPin, 
@@ -41,6 +42,7 @@ interface Job {
 }
 
 const Jobs = () => {
+  const { requireAuth } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
@@ -68,8 +70,11 @@ const Jobs = () => {
   };
 
   const searchJobs = async () => {
+    const authed = await requireAuth("Sign in with Google to search live job listings.");
+    if (!authed) return;
     setIsLoading(true);
     setHasSearched(true);
+
 
     try {
       const { data, error } = await supabase.functions.invoke('search-jobs', {

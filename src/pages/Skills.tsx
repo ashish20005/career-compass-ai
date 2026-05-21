@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   BookOpen, 
   Plus, 
@@ -56,6 +57,7 @@ interface AnalysisResult {
 }
 
 const Skills = () => {
+  const { requireAuth } = useAuth();
   const [skills, setSkills] = useState<string[]>(["JavaScript", "HTML", "CSS", "Git"]);
   const [newSkill, setNewSkill] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -77,6 +79,9 @@ const Skills = () => {
       toast.error("Please add at least one skill");
       return;
     }
+    const authed = await requireAuth("Sign in with Google to get your personalized skill analysis.");
+    if (!authed) return;
+
 
     setIsAnalyzing(true);
     setAnalysisResult(null);
