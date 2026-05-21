@@ -70,6 +70,26 @@ export function Navbar() {
                 ))}
               </div>
 
+              <div className="hidden md:flex items-center gap-2">
+                {user ? (
+                  <>
+                    <Avatar className="w-8 h-8 border border-border/50">
+                      <AvatarImage src={user.user_metadata?.avatar_url} alt="" />
+                      <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                    </Avatar>
+                    <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                      <LogOut className="w-4 h-4" /> Sign out
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant="hero" size="sm" asChild>
+                    <Link to="/auth">Sign in</Link>
+                  </Button>
+                )}
+              </div>
+
+
+
 
               {/* Mobile Menu Toggle */}
               <button
