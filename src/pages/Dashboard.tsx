@@ -5,7 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { AgentCard } from "@/components/ui/agent-card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useAuth } from "@/hooks/useAuth";
+
 import {
   FileText,
   BookOpen,
