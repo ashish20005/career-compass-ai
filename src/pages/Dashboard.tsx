@@ -79,13 +79,7 @@ const quickStats = [
 
 const Dashboard = () => {
   const [overallProgress] = useState(68);
-  const { user, loading, openAuth } = useAuth();
 
-  useEffect(() => {
-    if (!loading && !user) {
-      openAuth("Sign in with Google to view your personalized dashboard.");
-    }
-  }, [loading, user, openAuth]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
