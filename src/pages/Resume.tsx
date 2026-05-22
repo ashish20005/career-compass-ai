@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -32,7 +32,8 @@ interface AnalysisResult {
 }
 
 const Resume = () => {
-  const { requireAuth } = useAuth();
+  const { requireAuth, user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [resumeText, setResumeText] = useState("");
   const [targetRole, setTargetRole] = useState("");
@@ -86,6 +87,15 @@ const Resume = () => {
       setShowTextInput(true);
       toast.info("This file type needs pasted resume text. PDF uploads can be analyzed automatically.");
     }
+  };
+
+  const handleUploadClick = async () => {
+    if (user) {
+      fileInputRef.current?.click();
+      return;
+    }
+
+    await requireAuth("Sign in with Google to upload and analyze your resume.");
   };
 
   const analyzeResumeFromPdf = async (file: File) => {
@@ -352,7 +362,11 @@ const Resume = () => {
               transition={{ delay: 0.1 }}
               className="mb-8"
             >
-              <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-resume/30 rounded-2xl cursor-pointer bg-resume/5 hover:bg-resume/10 transition-colors">
+              <button
+                type="button"
+                onClick={handleUploadClick}
+                className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-resume/30 rounded-2xl cursor-pointer bg-resume/5 hover:bg-resume/10 transition-colors"
+              >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   <Upload className="w-12 h-12 text-resume mb-4" />
                   <p className="mb-2 text-lg font-semibold">
@@ -362,13 +376,14 @@ const Resume = () => {
                     Upload PDF or TXT, or paste text below
                   </p>
                 </div>
-                <input 
-                  type="file" 
-                  className="hidden" 
-                  accept=".txt,.pdf,.doc,.docx"
-                  onChange={handleFileUpload}
-                />
-              </label>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept=".txt,.pdf,.doc,.docx"
+                onChange={handleFileUpload}
+              />
 
               <div className="mt-6">
                 <p className="text-sm text-muted-foreground mb-2">Or paste your resume text:</p>
