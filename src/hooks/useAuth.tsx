@@ -33,6 +33,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const readyWaitersRef = useRef<Array<() => void>>([]);
   const pendingResolvers = useRef<Array<(v: boolean) => void>>([]);
 
+  const resolvePendingAuth = useCallback((value: boolean) => {
+    if (!pendingResolvers.current.length) return;
+    const resolvers = pendingResolvers.current;
+    pendingResolvers.current = [];
+    resolvers.forEach((resolve) => resolve(value));
+  }, []);
+
   const markReady = useCallback((nextSession: Session | null) => {
     sessionRef.current = nextSession;
     setSession(nextSession);
@@ -40,7 +47,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     readyRef.current = true;
     readyWaitersRef.current.forEach((fn) => fn());
     readyWaitersRef.current = [];
-  }, []);
+    if (nextSession?.user) {
+      setDialogOpen(false);
+      resolvePendingAuth(true);
+    }
+  }, [resolvePendingAuth]);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
@@ -53,10 +64,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         readyWaitersRef.current = [];
       }
       if (s?.user && pendingResolvers.current.length) {
-        const resolvers = pendingResolvers.current;
-        pendingResolvers.current = [];
         setDialogOpen(false);
-        resolvers.forEach((r) => r(true));
+        resolvePendingAuth(true);
       }
     });
     supabase.auth.getSession()
@@ -85,24 +94,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (sessionRef.current?.user) return true;
     setReason(r);
     setDialogOpen(true);
-    await waitForReady();
-    if (sessionRef.current?.user) {
-      setDialogOpen(false);
-      return true;
-    }
     return new Promise<boolean>((resolve) => {
       pendingResolvers.current.push(resolve);
+      waitForReady().then(() => {
+        if (sessionRef.current?.user) {
+          setDialogOpen(false);
+          resolvePendingAuth(true);
+        }
+      });
     });
-  }, []);
+  }, [resolvePendingAuth]);
 
   const handleOpenChange = useCallback((open: boolean) => {
     setDialogOpen(open);
     if (!open && pendingResolvers.current.length) {
-      const resolvers = pendingResolvers.current;
-      pendingResolvers.current = [];
-      resolvers.forEach((r) => r(false));
+      resolvePendingAuth(false);
     }
-  }, []);
+  }, [resolvePendingAuth]);
 
   return (
     <Ctx.Provider
