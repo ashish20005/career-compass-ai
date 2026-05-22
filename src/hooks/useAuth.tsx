@@ -1,7 +1,10 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback, lazy, Suspense } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { AuthDialog } from "@/components/AuthDialog";
+
+const AuthDialog = lazy(() =>
+  import("@/components/AuthDialog").then((m) => ({ default: m.AuthDialog }))
+);
 
 type AuthCtx = {
   user: User | null;
@@ -27,47 +30,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [reason, setReason] = useState<string | undefined>();
+
+  const sessionRef = useRef<Session | null>(null);
+  const readyRef = useRef(false);
+  const readyWaitersRef = useRef<Array<() => void>>([]);
   const pendingResolvers = useRef<Array<(v: boolean) => void>>([]);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      sessionRef.current = s;
       setSession(s);
       if (s?.user && pendingResolvers.current.length) {
-        pendingResolvers.current.forEach((r) => r(true));
+        const resolvers = pendingResolvers.current;
         pendingResolvers.current = [];
         setDialogOpen(false);
+        resolvers.forEach((r) => r(true));
       }
     });
     supabase.auth.getSession().then(({ data }) => {
+      sessionRef.current = data.session;
       setSession(data.session);
       setLoading(false);
+      readyRef.current = true;
+      readyWaitersRef.current.forEach((fn) => fn());
+      readyWaitersRef.current = [];
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  const waitForReady = () =>
+    readyRef.current
+      ? Promise.resolve()
+      : new Promise<void>((resolve) => readyWaitersRef.current.push(resolve));
 
   const openAuth = useCallback((r?: string) => {
     setReason(r);
     setDialogOpen(true);
   }, []);
 
-  const requireAuth = useCallback(
-    (r?: string) =>
-      new Promise<boolean>((resolve) => {
-        if (session?.user) return resolve(true);
-        setReason(r);
-        setDialogOpen(true);
-        pendingResolvers.current.push(resolve);
-      }),
-    [session]
-  );
+  const requireAuth = useCallback(async (r?: string): Promise<boolean> => {
+    await waitForReady();
+    if (sessionRef.current?.user) return true;
+    return new Promise<boolean>((resolve) => {
+      setReason(r);
+      setDialogOpen(true);
+      pendingResolvers.current.push(resolve);
+    });
+  }, []);
 
-  const handleOpenChange = (open: boolean) => {
+  const handleOpenChange = useCallback((open: boolean) => {
     setDialogOpen(open);
-    if (!open) {
-      pendingResolvers.current.forEach((r) => r(false));
+    if (!open && pendingResolvers.current.length) {
+      const resolvers = pendingResolvers.current;
       pendingResolvers.current = [];
+      resolvers.forEach((r) => r(false));
     }
-  };
+  }, []);
 
   return (
     <Ctx.Provider
@@ -83,7 +101,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }}
     >
       {children}
-      <AuthDialog open={dialogOpen} onOpenChange={handleOpenChange} reason={reason} />
+      {dialogOpen && (
+        <Suspense fallback={null}>
+          <AuthDialog open={dialogOpen} onOpenChange={handleOpenChange} reason={reason} />
+        </Suspense>
+      )}
     </Ctx.Provider>
   );
 };
