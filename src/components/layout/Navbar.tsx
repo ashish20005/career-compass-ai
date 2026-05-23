@@ -135,8 +135,8 @@ export function Navbar() {
                   <LogOut className="w-4 h-4" /> Sign out
                 </Button>
               ) : (
-                <Button variant="hero" size="sm" className="w-full" asChild>
-                  <Link to="/auth" onClick={() => setIsOpen(false)}>Sign in</Link>
+                <Button variant="hero" size="sm" className="w-full" onClick={() => { setIsOpen(false); openAuth("Sign in to access your AI career coach."); }}>
+                  Sign in
                 </Button>
               )}
             </div>
