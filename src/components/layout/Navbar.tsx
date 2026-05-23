@@ -21,7 +21,7 @@ export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, signOut, openAuth } = useAuth();
 
   const handleSignOut = async () => {
     await signOut();
