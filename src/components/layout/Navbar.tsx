@@ -83,8 +83,8 @@ export function Navbar() {
                     </Button>
                   </>
                 ) : (
-                  <Button variant="hero" size="sm" asChild>
-                    <Link to="/auth">Sign in</Link>
+                  <Button variant="hero" size="sm" onClick={() => openAuth("Sign in to access your AI career coach.")}>
+                    Sign in
                   </Button>
                 )}
               </div>
