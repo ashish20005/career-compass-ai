@@ -54,25 +54,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [resolvePendingAuth]);
 
   useEffect(() => {
+    let cancelled = false;
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      sessionRef.current = s;
-      setSession(s);
-      if (!readyRef.current) {
-        setLoading(false);
-        readyRef.current = true;
-        readyWaitersRef.current.forEach((fn) => fn());
-        readyWaitersRef.current = [];
-      }
-      if (s?.user && pendingResolvers.current.length) {
-        setDialogOpen(false);
-        resolvePendingAuth(true);
-      }
+      // Synchronous only — avoid awaiting inside this callback (causes deadlocks/double-refresh)
+      markReady(s);
     });
     supabase.auth.getSession()
-      .then(({ data }) => markReady(data.session))
-      .catch(() => markReady(null));
-    return () => sub.subscription.unsubscribe();
+      .then(({ data }) => { if (!cancelled) markReady(data.session); })
+      .catch(() => { if (!cancelled) markReady(null); });
+    return () => { cancelled = true; sub.subscription.unsubscribe(); };
   }, [markReady]);
+
 
   const waitForReady = () => {
     if (readyRef.current) return Promise.resolve();

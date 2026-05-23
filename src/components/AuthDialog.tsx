@@ -27,7 +27,7 @@ export const AuthDialog = ({ open, onOpenChange, reason }: Props) => {
     setBusy(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.href,
+        redirect_uri: window.location.origin + window.location.pathname,
       });
       if (result.error) {
         toast({ title: "Google sign-in failed", description: result.error.message, variant: "destructive" });

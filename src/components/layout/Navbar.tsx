@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Sparkles, LogOut } from "lucide-react";
@@ -20,7 +21,7 @@ export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, signOut, openAuth } = useAuth();
 
   const handleSignOut = async () => {
     await signOut();
@@ -82,8 +83,8 @@ export function Navbar() {
                     </Button>
                   </>
                 ) : (
-                  <Button variant="hero" size="sm" asChild>
-                    <Link to="/auth">Sign in</Link>
+                  <Button variant="hero" size="sm" onClick={() => openAuth("Sign in to access your AI career coach.")}>
+                    Sign in
                   </Button>
                 )}
               </div>
@@ -134,8 +135,8 @@ export function Navbar() {
                   <LogOut className="w-4 h-4" /> Sign out
                 </Button>
               ) : (
-                <Button variant="hero" size="sm" className="w-full" asChild>
-                  <Link to="/auth" onClick={() => setIsOpen(false)}>Sign in</Link>
+                <Button variant="hero" size="sm" className="w-full" onClick={() => { setIsOpen(false); openAuth("Sign in to access your AI career coach."); }}>
+                  Sign in
                 </Button>
               )}
             </div>
