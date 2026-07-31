@@ -30,9 +30,6 @@ const clean = (t: string) => t.replace(/\u0000/g, "").replace(/[ \t]+/g, " ").tr
 const hasText = (t: string) => t.trim().length >= 80 && (t.match(/[a-zA-Z]/g)?.length ?? 0) >= 40;
 
 async function extractPdfWithAi(b64: string, fileName: string, key: string) {
-  const auth = await requireUser(req);
-  if (!auth) return unauthorizedResponse(corsHeaders);
-
   try {
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
