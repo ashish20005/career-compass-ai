@@ -43,9 +43,6 @@ const hasMeaningfulText = (text: string) => {
 };
 
 async function extractPdfTextWithAi(pdfBase64: string, fileName: string, apiKey: string) {
-  const auth = await requireUser(req);
-  if (!auth) return unauthorizedResponse(corsHeaders);
-
   try {
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
