@@ -88,6 +88,9 @@ async function extractResume(b64: string, fileType: string, fileName: string, ke
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const auth = await requireUser(req);
+  if (!auth) return unauthorizedResponse(corsHeaders);
+
   try {
     const KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!KEY) {
