@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { extractText } from "https://esm.sh/unpdf@0.12.1?target=deno";
 import mammoth from "npm:mammoth@1.8.0";
+import { requireUser, unauthorizedResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,6 +30,9 @@ const clean = (t: string) => t.replace(/\u0000/g, "").replace(/[ \t]+/g, " ").tr
 const hasText = (t: string) => t.trim().length >= 80 && (t.match(/[a-zA-Z]/g)?.length ?? 0) >= 40;
 
 async function extractPdfWithAi(b64: string, fileName: string, key: string) {
+  const auth = await requireUser(req);
+  if (!auth) return unauthorizedResponse(corsHeaders);
+
   try {
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

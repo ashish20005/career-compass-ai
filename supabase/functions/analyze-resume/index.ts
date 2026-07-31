@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { extractText } from "https://esm.sh/unpdf@0.12.1?target=deno";
+import { requireUser, unauthorizedResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,6 +43,9 @@ const hasMeaningfulText = (text: string) => {
 };
 
 async function extractPdfTextWithAi(pdfBase64: string, fileName: string, apiKey: string) {
+  const auth = await requireUser(req);
+  if (!auth) return unauthorizedResponse(corsHeaders);
+
   try {
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
